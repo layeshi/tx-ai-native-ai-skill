@@ -2,7 +2,7 @@
 
 ## 认证与发现
 
-以下示例要求已有 `curl`、`jq`，且安全环境已设置平台根地址及个人 Agent token。不要把模型网关地址配置成平台根地址。每个请求携带 `Authorization: Bearer`，JSON 请求另带 `Content-Type: application/json`。
+以下示例要求已有 `curl`、`jq`。调用前优先加载技能连接配置：`set -a; . ~/.config/tx-ai-native-ai/connection.env; set +a`。如果配置不存在，完成网页授权后用 `printf '%s' "$token" | node scripts/connection.mjs save --url "$url" --token-stdin --name DEFAULT` 保存；不要把 token 放在命令行、仓库或日志中。不要把模型网关地址配置成平台根地址。每个请求携带 `Authorization: Bearer`，JSON 请求另带 `Content-Type: application/json`。
 
 ```bash
 : "${PLATFORM_BASE_URL:?需要平台根地址}"

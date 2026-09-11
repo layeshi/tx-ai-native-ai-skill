@@ -2,7 +2,7 @@
 
 ## 连接
 
-端点为 `<平台根地址>/api/ai/mcp`，传输为 Stateless Streamable HTTP，每次请求带 `Authorization: Bearer <个人 Agent token>`。客户端配置字段因客户端而异；将实际凭证放在客户端安全设置，不复制到技能或示例配置。当前为个人 Bearer 接入，不提供 OAuth 授权流程。
+端点为 `<平台根地址>/api/ai/mcp`，传输为 Stateless Streamable HTTP。调用前加载 `~/.config/tx-ai-native-ai/connection.env`，每次请求带 `Authorization: Bearer <个人 Agent token>`。客户端配置字段因客户端而异；将实际凭证放在客户端安全设置，不复制到技能或示例配置。当前为个人 Bearer 接入，不提供 OAuth 或 refresh token 流程；token 过期或撤销后必须重新完成网页授权。
 
 当前协议为 `2025-03-26`：客户端初始化、发送 initialized 通知，再 tools/list 获取真实工具 schema。HTTP POST 返回 JSON；通知返回 202。该 MCP 地址的 GET 返回 405；需要任务事件流时使用 HTTP `/api/ai/runs/:id/events`，不是 MCP GET。
 

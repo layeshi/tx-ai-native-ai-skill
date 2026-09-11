@@ -5,23 +5,18 @@ description: 使用 Tx-AI 系统原生 AI，通过个人 Agent 凭证与 MCP/HTT
 
 # Tx-AI 原生 AI
 
-安装命令必须使用仓库路径 `skills/tx-ai-native-ai`，并固定到用户指定的稳定 tag；目标目录已存在时先比较 `SKILL.md` 版本，不能把“Destination already exists”描述成已安装最新版。
-
-## 授权引导
-
-安装后如需配置连接，可向用户提供默认授权页面 `https://ai.spaceexplorer.cn/agent-access`，但必须先询问用户是否确认打开。用户拒绝时，要求用户输入自己的 Tx-AI 平台根地址（不含 `/api/ai`、不带末尾 `/`），再打开 `<平台根地址>/agent-access`。不得在用户未确认时打开默认网址，也不得猜测或替换用户提供的平台地址。
-
-授权能力与资料范围分别配置；全部业务能力不等于全部工作空间、会话、业务对象或结果均可访问。创建凭证后只报告能力数量和资料范围状态，不读取、记录或回显完整一次性 token。授权检查应在同一 shell 中设置环境变量并运行 `scripts/check-auth.sh`；独立工具进程通常不会继承用户另一个终端的变量。
-
 把 Tx-AI 当作有持久任务、业务数据、计算服务和结果授权的分析平台。优先读取已有结果；需新增计算时，调用平台发现到的能力。模型供应商接口不是本技能的入口。
 
 ## 连接与选择
 
-1. 从用户或既有连接配置取得平台根地址和个人 Agent 凭证。HTTP 示例使用 `PLATFORM_BASE_URL`（不含 `/api/ai`、不带末尾 `/`）及 `PLATFORM_AGENT_TOKEN` 环境变量。凭证形如 `txai_<grant-id>.<secret>`，由网页用户在页面助手授权管理创建、仅创建时展示；供应商 `sk-…` 密钥不能替代它。凭证只保存在连接配置或安全环境中，输出与交付文件不包含密钥。
-2. 已有 MCP 连接时，读取 [MCP 调用](references/mcp.md)，执行 `list_capabilities`。只有 HTTP 时，读取 [HTTP 调用与结果](references/http.md)，请求 `/api/ai/capabilities`。没有地址/凭证则只询问缺失项；不创建账号或读取服务端数据库来绕过授权。
-3. 以当前发现结果的 `id`、`title`、`fields`、`effect`、`scope` 为准。`fields` 是允许的参数名列表，不是完整 JSON Schema；复杂输入参考 [业务选择与算例](references/recipes.md)，不确定时先查该领域配置/清单或用平台对话澄清。平台返回的 `path` 是内部实现路径，外部 Agent 仍经统一任务接口调用。
+1. 每次使用先执行 `set -a; . ~/.config/tx-ai-native-ai/connection.env; set +a`（文件不存在时才询问连接信息）。配置目录必须为 `0700`、文件为 `0600`。默认使用 `PLATFORM_BASE_URL` 和 `PLATFORM_AGENT_TOKEN`；多部署连接使用 `PLATFORM_BASE_URL_<连接名>`、`PLATFORM_AGENT_TOKEN_<连接名>`，默认连接名由 `TX_AI_NATIVE_AI_DEFAULT_CONNECTION` 表示。凭证形如 `txai_<grant-id>.<secret>`，由网页用户在页面助手授权管理创建、仅创建时展示；供应商 `sk-…` 密钥不能替代它。
+2. 授权成功后执行 `printf '%s' "$token" | node scripts/connection.mjs save --url "$url" --token-stdin --name DEFAULT`。脚本原子写入安全配置并更新默认单连接变量；后续运行自动加载，不再索要 URL/token。禁止写入仓库、项目 `.env`、对话、日志或交付文件。
+3. 已有 MCP 连接时，读取 [MCP 调用](references/mcp.md)，执行 `list_capabilities`。只有 HTTP 时，读取 [HTTP 调用与结果](references/http.md)，请求 `/api/ai/capabilities`。没有地址/凭证则只询问缺失项；不创建账号或读取服务端数据库来绕过授权。
+4. 以当前发现结果的 `id`、`title`、`fields`、`effect`、`scope` 为准。`fields` 是允许的参数名列表，不是完整 JSON Schema；复杂输入参考 [业务选择与算例](references/recipes.md)，不确定时先查该领域配置/清单或用平台对话澄清。平台返回的 `path` 是内部实现路径，外部 Agent 仍经统一任务接口调用。
 
 外部能力发现与平台内部对话工具继承同一份 Agent 授权，两者都看不到某能力并不能证明部署缺少该能力或数据源。能力不可见时报告“当前授权不可用”；只有实际执行相应查询并获得空集合，才能报告“该范围查询结果为空”。completed 也可能只是模型已完成权限不足的说明，不能据此判定业务查询成功。
+
+连接返回 `401` 或 `403` 时执行 `node scripts/connection.mjs invalidate --name "$TX_AI_NATIVE_AI_DEFAULT_CONNECTION"`，清除当前 token、保留 URL；停止重试，不自动切换账号或创建凭证。提示用户重新授权，成功后按上述命令保存新 token。持久化不延长 token 有效期，也不能绕过撤销、过期或管理员关闭资格。
 
 ## 执行流程
 
