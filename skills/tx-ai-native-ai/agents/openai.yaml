@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tx-AI 原生 AI 能力"
+  short_description: "通过 MCP 或 HTTP 使用平台对话、业务计算和已有结果"
+  default_prompt: "使用 $tx-ai-native-ai 发现我已授权的系统能力，优先复用已有结果，并完成所需分析。"
