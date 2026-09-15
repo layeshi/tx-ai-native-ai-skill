@@ -12,7 +12,7 @@ curl --fail-with-body --max-time 30 -sS \
   "$PLATFORM_BASE_URL/api/ai/capabilities"
 ```
 
-返回能力数组，不包装在 `data` 内。`GET /api/ai/config` 返回 `configured`、`model` 等；配置标志不证明上游当前健康，最终以任务结果为准。
+返回能力数组，不包装在 `data` 内。`GET /api/ai/config` 返回 `configured`、`model` 等；配置标志不证明上游当前健康，最终以任务结果为准。`GET /api/ai/identity` 返回当前凭证身份（`personal` 个人 Agent、`user` 网页用户、`platform` 平台业务凭证）及 `principalId`、资源范围，用于调用前确认凭证类型（MCP 对应 `get_identity`）。
 
 ## 创建对话和提交任务
 
@@ -49,6 +49,8 @@ printf '%s\n' "$platform_run_id"
 
 超时后保留 `platform_request_body` 重发，不重新生成 requestId。requestId 长度 8–128，只允许字母数字下划线、点、横线；UUID 符合约束。`input.forceRecompute=true` 跳过平台结果复用；业务数据仍可能来自底层快照，因此不能理解为强制刷新全部数据源。
 
+带 `parameterSchema` 的能力在提交时同步校验参数：缺少必填项、取值不在合法列表、超出范围会立即返回 400 并在消息中给出可用值（例如 `constellation 无效：…；可用值：starlink、…`），不会创建 queued 任务。`constellation.overview/snapshot/history` 只接受注册表规范 `constellation` slug（不支持 `slug` 参数）；`situation.shadows` 必填 `constellation/noradId/start`；`maneuver.run` 的 `timeWindow` 不超过 30 天。提交前以发现结果中的 `parameterSchema.required` 与枚举为准。
+
 ## 任务查询、事件、取消和重试
 
 ```bash
@@ -59,11 +61,11 @@ curl --fail-with-body --max-time 30 -sS \
 
 任务是记录对象：顶层 `id`、`revision`、`createdAt`，主体 `body.status`、`body.actor`、`body.events`、`body.result` 等。直接能力完成结果一般包含 `resultId`、`reused`、`source`、预览 `data`；具体字段依调用结果而定。
 
-建议每 2–5 秒查询，长任务可降低频率。终态为 `completed`、`failed`、`cancelled`、`interrupted`；`waiting_confirmation` 暂停等待用户。失败原因从实际任务和事件读取。
+建议每 2–5 秒查询，长任务可降低频率。终态为 `completed`、`failed`、`cancelled`、`interrupted`；`waiting_confirmation` 暂停等待用户。失败原因从实际任务和事件读取；capability 任务失败时 `body.events` 内有一条结构化失败事件（payload.failure 含 capabilityId、params、error），可直接定位是哪次调用、什么参数失败。
 
 | 操作 | 请求 | 说明 |
 | --- | --- | --- |
-| 列出任务 | `GET /api/ai/runs` | 可用 `conversationId`、`summary=true`、`before`；Agent 只见本授权发起的任务 |
+| 列出任务 | `GET /api/ai/runs` | 可用 `conversationId`、`summary=true`、`before`；Agent 只见本授权发起的任务。`summary=true` 的每行 `body.input`（含 capabilityId/params）与 `body.error` 可直接用于按能力过滤和排查失败 |
 | SSE | `GET /api/ai/runs/:id/events` | `curl -N`，携带 Bearer；`Last-Event-ID` 或 `after` 续传 |
 | 取消 | `POST /api/ai/runs/:id/cancel`，`{}` | 202 只是取消请求，继续查最终状态 |
 | 重试 | `POST /api/ai/runs/:id/retry`，`{}` | 仅 failed/cancelled/interrupted，响应是新任务，记录新 id |
@@ -74,7 +76,7 @@ SSE 普通 `data` 事件为执行过程；具名 `event: status` 包含 status/r
 
 | 操作 | 请求 | 返回或约束 |
 | --- | --- | --- |
-| 结果列表 | `GET /api/ai/results` | 数组；记录元数据和 body，省略大字段 data；可加 workspaceId/conversationId |
+| 结果列表 | `GET /api/ai/results` | 数组；每项顶层含 `capabilityId`、`title`、`params`，`body` 省略大字段 data；可加 workspaceId/conversationId |
 | 读取结果 | `GET /api/ai/results/:id?path=&offset=0&limit=50` | resultId、data、source、createdAt、artifacts，依类型有 keys/total 等 |
 | 筛选/统计 | `POST /api/ai/results/:id/query` | 下述查询 body |
 | 完整 JSON | `GET /api/ai/results/:id/download` | result.body，包括完整 data；也需 Bearer |

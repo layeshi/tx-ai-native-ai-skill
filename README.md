@@ -4,7 +4,7 @@ Install for Codex from the stable tag:
 
 ```bash
 python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
-  --repo layeshi/tx-ai-native-ai-skill --path skills/tx-ai-native-ai --ref v1.0.3
+  --repo layeshi/tx-ai-native-ai-skill --path skills/tx-ai-native-ai --ref v1.0.4
 ```
 
 Claude Code users can copy `skills/tx-ai-native-ai` into their configured skills directory.

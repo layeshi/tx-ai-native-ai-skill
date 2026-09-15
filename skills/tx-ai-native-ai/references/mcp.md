@@ -38,12 +38,13 @@
 }
 ```
 
-## 八项工具
+## 九项工具
 
 以 tools/list 的 inputSchema 为准。下表表示当前契约；`?` 表示可选。
 
 | 工具 | arguments | 完成条件 |
 | --- | --- | --- |
+| get_identity | `{}` | 确认当前凭证身份：personal、user 或 platform |
 | list_capabilities | `{}` | 获得此授权可用的能力数组 |
 | create_conversation | title?, workspaceId? | 获得 conversation.id |
 | send_message | prompt, requestId, conversationId?, workspaceId?, metadata? | 获得 run.id 后续查终态 |
@@ -52,6 +53,8 @@
 | cancel_run | runId | 仅请求取消，再 get_run 等待终态 |
 | list_results | conversationId?, workspaceId? | 获得授权结果 id、能力、参数、时间 |
 | query_result | resultId, path?, offset?, limit?, filters?, sortBy?, descending?, aggregate?, conversationId?, workspaceId? | 获得所需范围的真实结果事实 |
+
+平台业务凭证（get_identity 返回 platform）会额外暴露 list_resources、call_resource、confirm_run、save_result、delete_result、reference_result 六个平台工具；本技能流程面向个人凭证，不使用平台工具。list_results 的 cursor/limit/ownerId 仅对平台身份分页生效，个人身份返回全量数组。
 
 metadata 当前允许 workspaceId、assetIds、builtinSourceIds；上下文与授权必须一致。查询参数语义见 [HTTP 结果契约](http.md#结果分页和附件)。MCP send_message 的参数在 arguments 顶层，HTTP 则包装在 input；不要混用封装。
 
